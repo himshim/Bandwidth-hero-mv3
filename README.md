@@ -1,149 +1,104 @@
-Bandwidth Hero (MV3 Rebuild)
+# Bandwith Hero MV3
 
-🚀 Bandwidth Hero is a browser extension that saves bandwidth by compressing images before they are loaded in your browser.
-This project is a from-scratch MV3-compatible rebuild, so it works in the latest versions of Chromium browsers (Chrome, Edge, Brave, Kiwi, Ultimatum) and Firefox (desktop + Android).
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Manifest V3](https://img.shields.io/badge/Manifest-MV3-blue.svg)](https://developer.chrome.com/docs/extensions/mv3/)
+[![GitHub release](https://img.shields.io/github/v/release/himshim/bandwidth-hero-mv3)](https://github.com/himshim/bandwidth-hero-mv3/releases)
 
-⚠️ Disclaimer: This is a hobby project, maintained in my free time. It may not always be up to date with the latest browser changes. Contributions, bug fixes, and new features are very welcome!
-
-
----
-
-✨ Features
-
-Compresses images on any site via a proxy
-
-Adjustable quality (1–100)
-
-Optional grayscale mode
-
-Resize images with a maximum width
-
-Works with Manifest V3 (future-proof for Chrome/Edge)
-
-Firefox-compatible (MV3 + webRequest fallback)
-
-Mobile-friendly (Kiwi Browser, Ultimatum Browser, Firefox Android once signed via AMO)
-
-
+A modern Manifest V3 rewrite of the classic Bandwidth Hero extension.  
+Saves mobile data and speeds up browsing by compressing images through a proxy before they load.
 
 ---
 
-📦 How to Install
+## Features
 
-Chromium Browsers (Chrome / Edge / Brave / Kiwi / Ultimatum)
-
-1. Download the latest bandwidth-hero-chromium.zip from Releases.
-
-
-2. Extract the ZIP (if needed) or load it directly as an unpacked extension:
-
-Go to chrome://extensions
-
-Turn on Developer Mode
-
-Click Load unpacked
-
-Select the extracted folder
-(In mobile Chromium browsers like Kiwi/Ultimatum, the process may differ slightly.)
-
-
-
-
-Firefox (Desktop / Android)
-
-1. Download bandwidth-hero-firefox.zip from Releases.
-
-
-2. Load it as a temporary add-on:
-
-Go to about:debugging → This Firefox → Load Temporary Add-on
-
-Select manifest.json inside the folder
-(For Android, the signed version from AMO is recommended once available.)
-
-
-
-
+- Image compression through your own proxy
+- Data savings statistics (images compressed and data via proxy)
+- Modern, mobile-friendly UI with sliders and toggles
+- Grayscale mode for extra savings
+- Exclusion list to skip specific sites
+- Works on Chromium browsers (Chrome, Edge, Brave, Kiwi, Ultimatum) and Firefox
 
 ---
 
-🔧 Usage
+## How it works
 
-1. Click the extension icon → Options
-
-
-2. Set your Proxy Base URL (e.g. bandwidth-hero-proxy2)
-
-
-3. Adjust quality / grayscale / max width
-
-
-4. Toggle Enable compression on/off in the popup
-
-
-
+1. Extension rewrites `<img>` and `<picture>` tags on web pages.
+2. Image requests are redirected through your proxy.
+3. The proxy compresses and resizes images.
+4. The extension tracks savings locally.
 
 ---
 
-🛠 Development & Releases
+## Installation
 
-This repo is set up with GitHub Actions to automatically build release zips:
+### Chromium (Chrome, Edge, Brave, Kiwi, Ultimatum)
 
-bandwidth-hero-chromium.zip
+1. Download the latest chromium zip from [Releases](https://github.com/himshim/bandwidth-hero-mv3/releases).
+2. Extract it.
+3. Go to `chrome://extensions/`.
+4. Enable Developer Mode.
+5. Click Load Unpacked and select the extracted folder.
 
-bandwidth-hero-firefox.zip
+### Firefox
 
-
-To release a new version:
-
-1. Tag a commit with vX.Y.Z (e.g., v1.0.0)
-
-
-2. GitHub Actions builds and attaches the zips to a Release
-
-
-
-
+1. Download the firefox zip from [Releases](https://github.com/himshim/bandwidth-hero-mv3/releases).
+2. Go to `about:debugging#/runtime/this-firefox`.
+3. Click "Load Temporary Add-on" and select the zip or manifest.
 
 ---
 
-🙏 Credits
+## Setting up a Proxy
 
-Original extension created by ayastreb/bandwidth-hero
+This extension requires a proxy to work.  
+You can host your own easily using:
 
-Compression proxy inspiration: bandwidth-hero-proxy
+Proxy repository: [bandwidth-hero-proxy2](https://github.com/himshim/bandwidth-hero-proxy2)
 
-This repo’s proxy fork: bandwidth-hero-proxy2
+Deploy options: Heroku, Railway.app, Netlify Functions, Vercel, or your own Node.js server.
 
-
-All credit for the idea and original implementation goes to the original authors.
-This repo just aims to keep the extension alive and compatible with new browser requirements.
-
+Once deployed, copy your proxy endpoint (e.g. `https://your-proxy.example.com/api/index`) and paste it into the Options page.
 
 ---
 
-❤️ Contributing
+## Settings
 
-This is a community-driven hobby project.
-If you want to help:
-
-Report bugs
-
-Test on different browsers (desktop/mobile)
-
-Improve code or UI
-
-Add features (e.g. whitelist/blacklist sites, per-site settings)
-
-
-Open a Pull Request or Issue on GitHub — any help is appreciated 🙌
-
+- Enable compression: master toggle
+- Quality slider (1–100): lower = more savings, higher = better quality
+- Max width: resize down large images
+- Grayscale: convert images to black and white
+- Excluded sites: skip compression on selected domains (e.g. `google.com gstatic.com`)
 
 ---
 
-📜 License
+## Stats
 
-MIT License — free to use, modify, and share.
+Options page shows:
 
+- Images compressed
+- Data via proxy (requires proxy to send `Timing-Allow-Origin: *`)
 
 ---
+
+## Contributing
+
+This is a community hobby project.  
+Contributions are welcome! Bug fixes, UI improvements, testing across browsers are especially helpful.  
+Feel free to fork, improve, and send pull requests.
+
+---
+
+## Credits
+
+- Original Bandwidth Hero by Alexander Ayastreb: https://github.com/ayastreb/bandwidth-hero
+- This MV3 fork and modern UI: https://github.com/himshim/bandwidth-hero-mv3
+- Proxy server: https://github.com/himshim/bandwidth-hero-proxy2
+
+---
+
+## License
+
+MIT License
+
+---
+
+Latest releases: https://github.com/himshim/bandwidth-hero-mv3/releases
