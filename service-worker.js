@@ -1,10 +1,11 @@
-// Bandwidth Hero (MV3) — service worker (fixed substitution + RE2-safe)
+// Bandwidth Hero (MV3) — service worker (no forced /image; RE2-safe; \0 preserved)
 const RULESET_ID = 1;
 
 function buildRedirectSubstitution(opts) {
-  // Build the URL manually so \0 stays as backreference (NOT encoded).
-  const base = (opts.proxyBase || "https://your-proxy.example.com").replace(/\/$/, "");
-  let sub = `${base}/image?url=\\0`;  // keep backslash here!
+  // Use proxyBase exactly as provided (full path allowed). Just append query params.
+  const base = (opts.proxyBase || "https://your-proxy.example.com").replace(/[\s]/g, "");
+  const sep = base.includes("?") ? "&" : "?"; // support bases that already have a query
+  let sub = `${base}${sep}url=\\0`; // keep \0 as a backreference (don't encode!)
   if (opts.quality)   sub += `&quality=${encodeURIComponent(String(opts.quality))}`;
   if (opts.grayscale) sub += `&bw=1`;
   if (opts.maxWidth)  sub += `&max_width=${encodeURIComponent(String(opts.maxWidth))}`;
@@ -20,15 +21,13 @@ function buildRules(opts) {
     priority: 1,
     action: {
       type: "redirect",
-      // regexSubstitution replaces the WHOLE matched URL with this template.
-      // \0 is the ENTIRE original URL. Do not encode it.
       redirect: { regexSubstitution: buildRedirectSubstitution(opts) }
     },
     condition: {
       resourceTypes: ["image"],
-      // RE2-safe: simple match for any http/https URL
+      // RE2-safe: match any http/https image
       regexFilter: "^https?://.*",
-      // avoid redirect loops to your proxy itself
+      // prevent loops to your proxy host
       ...(proxyHost ? { excludedRequestDomains: [proxyHost], excludedDomains: [proxyHost] } : {})
     }
   }];
@@ -37,6 +36,8 @@ function buildRules(opts) {
 async function loadOptions() {
   return chrome.storage.sync.get({
     enabled: true,
+    // You will paste your full Netlify function URL into Options:
+    // e.g., https://himshim-bandwidth-hero.netlify.app/api/index
     proxyBase: "https://your-proxy.example.com",
     quality: 60,
     grayscale: false,
@@ -64,7 +65,7 @@ chrome.storage.onChanged.addListener(async (changes, area) => {
   await applyRulesFromOptions(opts);
 });
 
-// Firefox-only fallback (Chrome ignores this block)
+// Firefox fallback (Chrome ignores)
 if (typeof browser !== 'undefined' && browser.webRequest && browser.webRequest.onBeforeRequest) {
   const getOpts = () => browser.storage.sync.get({
     enabled: true,
@@ -78,17 +79,14 @@ if (typeof browser !== 'undefined' && browser.webRequest && browser.webRequest.o
       const opts = await getOpts();
       if (!opts.enabled) return {};
       try {
-        // Build a real URL here since Firefox path doesn't need backrefs
-        const base = (opts.proxyBase || "https://your-proxy.example.com").replace(/\/$/, "");
-        const u = new URL(base + "/image");
-        u.searchParams.set("url", details.url);
-        if (opts.quality)   u.searchParams.set("quality", String(opts.quality));
-        if (opts.grayscale) u.searchParams.set("bw", "1");
-        if (opts.maxWidth)  u.searchParams.set("max_width", String(opts.maxWidth));
-        return { redirectUrl: u.toString() };
-      } catch {
-        return {};
-      }
+        const base = (opts.proxyBase || "https://your-proxy.example.com");
+        const sep = base.includes("?") ? "&" : "?";
+        const u = `${base}${sep}url=${encodeURIComponent(details.url)}`
+          + (opts.quality ? `&quality=${encodeURIComponent(String(opts.quality))}` : "")
+          + (opts.grayscale ? `&bw=1` : "")
+          + (opts.maxWidth ? `&max_width=${encodeURIComponent(String(opts.maxWidth))}` : "");
+        return { redirectUrl: u };
+      } catch { return {}; }
     },
     { urls: ["<all_urls>"], types: ["image"] },
     ["blocking"]
