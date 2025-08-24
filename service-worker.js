@@ -1,4 +1,4 @@
-// Bandwidth Hero (MV3) — service worker using URLTransform
+// Bandwidth Hero (MV3) — service worker using URLTransform (fixed: no extra fields in redirect)
 const RULESET_ID = 1;
 
 function buildTransform(opts) {
@@ -8,10 +8,11 @@ function buildTransform(opts) {
 
   const transform = {
     scheme: u.protocol.replace(":", ""),
-    host: u.host,
+    host: u.host,                 // includes port if any
     path: u.pathname || "/",
     queryTransform: {
       addOrReplaceParams: [
+        // \0 is the entire original URL; queryTransform will URL-encode it for ?url=
         { key: "url", value: "\\0" }
       ]
     }
@@ -21,7 +22,8 @@ function buildTransform(opts) {
   if (opts.grayscale) transform.queryTransform.addOrReplaceParams.push({ key: "bw",        value: "1" });
   if (opts.maxWidth)  transform.queryTransform.addOrReplaceParams.push({ key: "max_width", value: String(opts.maxWidth) });
 
-  return { transform, proxyHost: u.host };
+  // Return both the transform and the hostname (without port) for exclusions
+  return { transform, proxyHostname: u.hostname };
 }
 
 function buildRules(opts) {
@@ -31,12 +33,18 @@ function buildRules(opts) {
   return [{
     id: RULESET_ID,
     priority: 1,
-    action: { type: "redirect", redirect: t },
+    action: {
+      type: "redirect",
+      redirect: { transform: t.transform }   // ✅ only the transform goes here
+    },
     condition: {
-      regexFilter: "^https?://.*",
+      regexFilter: "^https?://.*",           // RE2-safe
       resourceTypes: ["image"],
-      excludedRequestDomains: [t.proxyHost],
-      excludedDomains: [t.proxyHost]
+      // Avoid redirect loops to the proxy itself
+      ...(t.proxyHostname ? {
+        excludedRequestDomains: [t.proxyHostname],
+        excludedDomains: [t.proxyHostname]
+      } : {})
     }
   }];
 }
@@ -44,6 +52,8 @@ function buildRules(opts) {
 async function loadOptions() {
   return chrome.storage.sync.get({
     enabled: true,
+    // Put your full proxy endpoint in Options, e.g.:
+    // https://himshim-bandwidth-hero.netlify.app/api/index
     proxyBase: "https://your-proxy.example.com",
     quality: 60,
     grayscale: false,
@@ -57,8 +67,11 @@ async function applyRulesFromOptions(opts) {
     await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: current.map(r => r.id) });
   }
   if (!opts.enabled) return;
+
   const rules = buildRules(opts);
-  if (rules.length) await chrome.declarativeNetRequest.updateDynamicRules({ addRules: rules });
+  if (rules.length) {
+    await chrome.declarativeNetRequest.updateDynamicRules({ addRules: rules });
+  }
 }
 
 chrome.runtime.onInstalled.addListener(async () => {
@@ -72,7 +85,7 @@ chrome.storage.onChanged.addListener(async (changes, area) => {
   await applyRulesFromOptions(opts);
 });
 
-// Firefox fallback (ignored by Chrome)
+// Firefox MV3 still allows blocking webRequest; Chrome ignores this block.
 if (typeof browser !== 'undefined' && browser.webRequest && browser.webRequest.onBeforeRequest) {
   const getOpts = () => browser.storage.sync.get({
     enabled: true,
