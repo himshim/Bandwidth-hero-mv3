@@ -14,9 +14,5 @@
   </div>
   <p><a href="options.html" target="_blank">Options…</a></p>
   <p class="hint">Make sure you set a Proxy Base URL in Options.</p>
-  <script type="module">
-    const enabled = document.getElementById('enabled');
-    chrome.storage.sync.get({enabled:true}, d => enabled.checked = d.enabled);
-    enabled.addEventListener('change', () => chrome.storage.sync.set({enabled: enabled.checked}));
-  </script>
+  <script type="module" src="popup.js"></script>
 </html>
