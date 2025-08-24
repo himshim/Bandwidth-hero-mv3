@@ -3,6 +3,7 @@ const grayscaleEl = document.getElementById('grayscale');
 const qualityEl = document.getElementById('quality');
 const qualityOut = document.getElementById('qualityOut');
 const excludeBtn = document.getElementById('excludeSite');
+const openSettingsBtn = document.getElementById('openSettings');
 
 const DEFAULTS = {
   enabled: true,
@@ -37,7 +38,12 @@ qualityEl.addEventListener('change', async () => {
   await chrome.storage.sync.set({ quality: parseInt(qualityEl.value, 10) || 60 });
 });
 
-// Exclude current site quickly (adds domain to excludeDomains if not present)
+// Open settings programmatically
+openSettingsBtn.addEventListener('click', () => {
+  chrome.runtime.openOptionsPage();
+});
+
+// Exclude current site quickly
 excludeBtn.addEventListener('click', async () => {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
