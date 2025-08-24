@@ -4,28 +4,25 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Bandwidth Hero — Popup</title>
   <style>
-    :root {
-      --bg: #0b0d10; --card:#12161b; --text:#e8eef6; --sub:#9aa7b1; --line:#20262d; --primary:#4da3ff; --press:#1d7ef0;
-    }
-    @media (prefers-color-scheme: light) {
-      :root { --bg:#f6f8fb; --card:#ffffff; --text:#0c1116; --sub:#5c6b76; --line:#e8edf2; --primary:#0b78ff; --press:#0a64d3; }
-    }
+    :root { --bg:#0b0d10; --card:#12161b; --text:#e8eef6; --sub:#9aa7b1; --line:#20262d; --primary:#4da3ff; --press:#1d7ef0; }
+    @media (prefers-color-scheme: light) { :root { --bg:#f6f8fb; --card:#ffffff; --text:#0c1116; --sub:#5c6b76; --line:#e8edf2; --primary:#0b78ff; --press:#0a64d3; } }
     * { box-sizing: border-box; }
     html,body { margin:0; padding:0; background:var(--bg); color:var(--text); font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-    .wrap { width: min(320px, 90vw); padding: 14px; }
-    .row { display:flex; align-items:center; justify-content:space-between; gap: 12px; background:var(--card); border:1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+    .wrap { width: min(360px, 95vw); padding: 14px; display: grid; gap: 12px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius: 14px; padding: 12px; }
+    .row { display:flex; align-items:center; justify-content:space-between; gap: 12px; }
     .title { font-weight: 700; }
     .sub { color: var(--sub); font-size: 12px; margin-top: 2px; }
-    .switch {
-      appearance: none; width: 48px; height: 28px; border-radius: 999px; background:#7a8793; position:relative; outline:none; cursor:pointer; border:1px solid var(--line);
-      transition: background .2s ease, border-color .2s ease;
-    }
+
+    .switch { appearance:none; width: 48px; height: 28px; border-radius: 999px; background:#7a8793; position:relative; outline:none; cursor:pointer; border:1px solid var(--line); }
     .switch:checked { background: var(--primary); border-color: var(--primary); }
-    .switch::after {
-      content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.25); transition: transform .2s ease;
-    }
+    .switch::after { content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.25); transition: transform .2s ease; }
     .switch:checked::after { transform: translateX(20px); }
-    .actions { margin-top: 10px; display:flex; gap:10px; }
+
+    .slider-wrap { display:grid; grid-template-columns: 1fr auto; align-items:center; gap:10px; margin-top: 6px; }
+    input[type="range"] { width:100%; accent-color: var(--primary); }
+
+    .actions { display:flex; gap:10px; }
     .btn { appearance:none; border:1px solid var(--line); background:var(--card); color:var(--text); padding:10px 12px; border-radius:12px; font-weight:600; cursor:pointer; width:100%; text-align:center; }
     .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
     .btn.primary:active { background: var(--press); }
@@ -34,16 +31,35 @@
 
   <body>
     <div class="wrap">
-      <div class="row">
+      <div class="card row">
         <div>
           <div class="title">Bandwidth Hero</div>
-          <div class="sub">Compress images to save data</div>
+          <div class="sub">Quick controls</div>
         </div>
         <input id="enabled" type="checkbox" class="switch" />
       </div>
 
+      <div class="card">
+        <div class="row">
+          <div>
+            <div class="title">Grayscale</div>
+            <div class="sub">Extra savings</div>
+          </div>
+          <input id="grayscale" type="checkbox" class="switch" />
+        </div>
+
+        <div style="height:6px"></div>
+
+        <label class="title" for="quality">Quality</label>
+        <div class="slider-wrap">
+          <input id="quality" type="range" min="1" max="100" step="1" />
+          <output id="qualityOut">60</output>
+        </div>
+      </div>
+
       <div class="actions">
         <a class="btn primary" href="options.html" target="_blank" rel="opener">Open Settings</a>
+        <button id="excludeSite" class="btn" type="button">Exclude this site</button>
       </div>
     </div>
 
