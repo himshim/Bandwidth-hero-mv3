@@ -10,20 +10,25 @@
     input[type="text"], input[type="number"] { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #bbb; border-radius: 8px; }
     .row { display:flex; gap:12px; align-items:center; }
     .row > div { flex: 1; }
-    .check { margin-top:10px; font-weight: 500; }
+    .check { margin-top:10px; font-weight: 500; display: grid; gap: 6px; }
     .hint { color:#666; font-size:12px; margin-top:6px; }
     button { padding: 10px 14px; border-radius: 10px; border: 1px solid #bbb; cursor: pointer; }
     #bar { margin: 16px 0; padding: 10px 12px; border: 1px dashed #bbb; border-radius: 10px; }
+    #testArea { margin-top: 16px; padding: 12px; border: 1px solid #ddd; border-radius: 10px; }
+    .muted { color:#666; }
+    .ok { color: #0b7a0b; font-weight: 600; }
+    .fail { color: #b00020; font-weight: 600; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
   </style>
 
   <h1>Bandwidth Hero</h1>
   <div id="bar">
-    Set your compression proxy below. The extension will redirect image requests to it and serve compressed images.
+    Set your compression proxy below. The extension redirects image requests to it and serves compressed images.
   </div>
 
   <label>Proxy Base URL</label>
-  <input id="proxyBase" type="text" placeholder="https://your-proxy.example.com">
-  <div class="hint">Expected endpoint: <code>/image?url=&lt;img&gt;&amp;quality=&lt;1-100&gt;&amp;max_width=&lt;px&gt;&amp;bw=1</code></div>
+  <input id="proxyBase" type="text" placeholder="https://himshim-bandwidth-hero.netlify.app/api/index">
+  <div class="hint">Expected: your endpoint that accepts <code>?url=&lt;image&gt;&amp;quality=&lt;1-100&gt;&amp;max_width=&lt;px&gt;&amp;bw=1</code></div>
 
   <div class="row">
     <div>
@@ -41,7 +46,19 @@
     <label><input id="enabled" type="checkbox"> Enable compression</label>
   </div>
 
-  <p><button id="save">Save</button> <span id="msg"></span></p>
+  <p>
+    <button id="save">Save</button>
+    <span id="msg" class="muted"></span>
+  </p>
+
+  <div id="testArea">
+    <div class="muted">Check your proxy works and is reachable from this browser.</div>
+    <p>
+      <button id="test">Test Proxy</button>
+      <span id="testStatus"></span>
+    </p>
+    <div id="testDetails" class="mono muted"></div>
+  </div>
 
   <script type="module" src="options.js"></script>
 </html>
