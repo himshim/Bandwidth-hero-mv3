@@ -2,7 +2,7 @@
 <html lang="en">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Bandwidth Hero — Options</title>
+  <title>Bandwith Hero MV3 — Options</title>
   <style>
     :root { --bg:#0b0d10; --card:#12161b; --text:#e8eef6; --sub:#9aa7b1; --line:#20262d; --primary:#4da3ff; --press:#1d7ef0; --radius:16px; }
     @media (prefers-color-scheme: light) { :root { --bg:#f6f8fb; --card:#ffffff; --text:#0c1116; --sub:#5c6b76; --line:#e8edf2; --primary:#0b78ff; --press:#0a64d3; } }
@@ -19,7 +19,6 @@
     @media (min-width: 560px) { .row2 { grid-template-columns: 1fr 1fr; } }
     label.lbl { font-weight: 600; font-size: 13px; margin-bottom: 6px; display:block; }
     .hint { color: var(--sub); font-size: 12px; margin-top: 6px; }
-
     input[type="text"], input[type="number"], textarea {
       width: 100%; padding: 12px 14px; background: transparent; color: var(--text);
       border: 1px solid var(--line); border-radius: 12px; outline: none; resize: vertical;
@@ -28,12 +27,8 @@
       border-color: var(--primary);
       box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 20%, transparent);
     }
-
-    /* Slider */
     .slider-wrap { display:grid; grid-template-columns: 1fr auto; align-items:center; gap:10px; }
     input[type="range"] { width:100%; accent-color: var(--primary); }
-
-    /* Toggle */
     .toggle { display:flex; align-items:center; justify-content:space-between; padding: 12px; border: 1px solid var(--line); border-radius: 14px; }
     .toggle .text { display:grid; gap:2px; }
     .toggle .title { font-weight: 600; }
@@ -42,14 +37,15 @@
     .switch:checked { background: var(--primary); border-color: var(--primary); }
     .switch::after { content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.25); transition: transform .2s ease; }
     .switch:checked::after { transform: translateX(20px); }
-
     .actions { position: sticky; bottom: 0; left: 0; right: 0; padding: 12px 16px; background: color-mix(in oklab, var(--bg) 75%, transparent); backdrop-filter: blur(8px); border-top: 1px solid var(--line); display:flex; gap:10px; justify-content:flex-end; }
     .btn { appearance:none; border:1px solid var(--line); background: var(--card); color: var(--text); padding: 12px 16px; border-radius: 12px; font-weight: 600; cursor: pointer; }
     .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
     .btn.primary:active { background: var(--press); }
     .btn.ghost { background: transparent; }
-
-    /* Stats */
+    .toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%) translateY(16px); background: var(--card); border:1px solid var(--line); color: var(--text); padding: 10px 14px; border-radius: 12px; opacity: 0; pointer-events:none; transition: opacity .25s ease, transform .25s ease; box-shadow: 0 6px 24px rgba(0,0,0,.25); font-size: 13px; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .links a { color: var(--primary); text-decoration: none; }
+    .links a:active { color: var(--press); }
     .stats { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
     .stat { background: var(--card); border:1px solid var(--line); border-radius: 12px; padding: 12px; }
     .stat .label { color: var(--sub); font-size: 12px; }
@@ -61,15 +57,29 @@
       <header>
         <div class="logo">BH</div>
         <div>
-          <h1>Bandwidth Hero</h1>
+          <h1>Bandwith Hero MV3</h1>
           <p class="lead">Compress images via your proxy to save data.</p>
         </div>
       </header>
 
+      <!-- Help / Links card -->
+      <section class="card grid links" aria-labelledby="sec-help">
+        <div>
+          <label id="sec-help" class="lbl">Need a proxy or the source code?</label>
+          <div>
+            • Set up your own proxy: <a href="https://github.com/himshim/bandwidth-hero-proxy2" target="_blank" rel="noopener">bandwidth-hero-proxy2</a><br/>
+            • Extension repository: <a href="https://github.com/himshim/bandwidth-hero-mv3" target="_blank" rel="noopener">bandwidth-hero-mv3</a>
+          </div>
+          <div class="hint">Both links are open-source and allowed on the Chrome Web Store when shown in an options page.</div>
+        </div>
+      </section>
+
+      <div style="height:12px"></div>
+
       <section class="card grid">
         <div>
           <label class="lbl">Proxy Base URL</label>
-          <input id="proxyBase" type="text" inputmode="url" placeholder="https://himshim-bandwidth-hero.netlify.app/api/index" autocomplete="url" />
+          <input id="proxyBase" type="text" inputmode="url" placeholder="https://your-proxy.example.com/api/index" autocomplete="url" />
           <div class="hint">Endpoint that accepts <code>?url=…&amp;quality=…&amp;max_width=…&amp;bw=1</code></div>
         </div>
       </section>
@@ -140,7 +150,7 @@
         <div style="display:flex; gap:10px; margin-top:10px;">
           <button id="resetStats" class="btn ghost" type="button">Reset stats</button>
         </div>
-        <div class="hint">“Data via proxy” requires your proxy to send <code>Timing-Allow-Origin: *</code> to expose sizes.</div>
+        <div class="hint">“Data via proxy” requires your proxy to send <code>Timing-Allow-Origin: *</code>.</div>
       </section>
     </div>
 
