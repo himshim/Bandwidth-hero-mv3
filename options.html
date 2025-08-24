@@ -4,97 +4,44 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Bandwidth Hero — Options</title>
   <style>
-    :root {
-      --bg: #0b0d10;
-      --card: #12161b;
-      --text: #e8eef6;
-      --sub: #9aa7b1;
-      --line: #20262d;
-      --primary: #4da3ff;
-      --primary-press: #1d7ef0;
-      --ok: #1db954;
-      --radius: 16px;
-      --pad: 16px;
-    }
-    @media (prefers-color-scheme: light) {
-      :root {
-        --bg: #f6f8fb;
-        --card: #ffffff;
-        --text: #0c1116;
-        --sub: #5c6b76;
-        --line: #e8edf2;
-        --primary: #0b78ff;
-        --primary-press: #0a64d3;
-      }
-    }
+    :root { --bg:#0b0d10; --card:#12161b; --text:#e8eef6; --sub:#9aa7b1; --line:#20262d; --primary:#4da3ff; --press:#1d7ef0; --radius:16px; }
+    @media (prefers-color-scheme: light) { :root { --bg:#f6f8fb; --card:#ffffff; --text:#0c1116; --sub:#5c6b76; --line:#e8edf2; --primary:#0b78ff; --press:#0a64d3; } }
     * { box-sizing: border-box; }
     html,body { margin:0; padding:0; background:var(--bg); color:var(--text); font: 15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-    .wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px 80px; }
+    .wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px 96px; }
     header { display:flex; align-items:center; gap:12px; margin-bottom:20px; }
     .logo { width: 36px; height: 36px; border-radius: 12px; background: linear-gradient(180deg, var(--primary), #7cc1ff); display:grid; place-items:center; color:#fff; font-weight:700; }
     h1 { font-size: 20px; margin: 0; }
     p.lead { margin: 6px 0 0; color: var(--sub); font-size: 13px; }
-    .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--pad); }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
     .grid { display:grid; gap:12px; }
     .row2 { display:grid; gap:12px; grid-template-columns: 1fr; }
     @media (min-width: 560px) { .row2 { grid-template-columns: 1fr 1fr; } }
-
     label.lbl { font-weight: 600; font-size: 13px; margin-bottom: 6px; display:block; }
     .hint { color: var(--sub); font-size: 12px; margin-top: 6px; }
-
-    input[type="text"], input[type="number"] {
+    input[type="text"], input[type="number"], textarea {
       width: 100%; padding: 12px 14px; background: transparent; color: var(--text);
-      border: 1px solid var(--line); border-radius: 12px; outline: none;
+      border: 1px solid var(--line); border-radius: 12px; outline: none; resize: vertical;
     }
-    input[type="text"]:focus, input[type="number"]:focus {
+    input[type="text"]:focus, input[type="number"]:focus, textarea:focus {
       border-color: var(--primary);
       box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 20%, transparent);
     }
-
-    /* Toggle style (still a checkbox under the hood) */
-    .toggle {
-      display:flex; align-items:center; justify-content:space-between; padding: 12px;
-      border: 1px solid var(--line); border-radius: 14px; background: color-mix(in oklab, var(--card) 90%, #000 0%);
-    }
+    .toggle { display:flex; align-items:center; justify-content:space-between; padding: 12px; border: 1px solid var(--line); border-radius: 14px; }
     .toggle .text { display:grid; gap:2px; }
     .toggle .title { font-weight: 600; }
     .toggle .desc { color: var(--sub); font-size: 12px; }
-
-    .switch {
-      appearance: none; width: 48px; height: 28px; border-radius: 999px;
-      background: #7a8793; position: relative; outline: none; cursor: pointer; border: 1px solid var(--line);
-      transition: background .2s ease, border-color .2s ease;
-    }
+    .switch { appearance:none; width: 48px; height: 28px; border-radius: 999px; background:#7a8793; position:relative; border:1px solid var(--line); }
     .switch:checked { background: var(--primary); border-color: var(--primary); }
-    .switch::after {
-      content:""; position:absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%;
-      background: #fff; transition: transform .2s ease;
-      box-shadow: 0 1px 2px rgba(0,0,0,.25);
-    }
+    .switch::after { content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.25); transition: transform .2s ease; }
     .switch:checked::after { transform: translateX(20px); }
-
-    /* Actions */
     .actions { position: sticky; bottom: 0; left: 0; right: 0; padding: 12px 16px; background: color-mix(in oklab, var(--bg) 75%, transparent); backdrop-filter: blur(8px); border-top: 1px solid var(--line); display:flex; gap:10px; justify-content:flex-end; }
-    .btn {
-      appearance:none; border:1px solid var(--line); background: var(--card); color: var(--text);
-      padding: 12px 16px; border-radius: 12px; font-weight: 600; cursor: pointer;
-    }
+    .btn { appearance:none; border:1px solid var(--line); background: var(--card); color: var(--text); padding: 12px 16px; border-radius: 12px; font-weight: 600; cursor: pointer; }
     .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
-    .btn.primary:active { background: var(--primary-press); }
+    .btn.primary:active { background: var(--press); }
     .btn.ghost { background: transparent; }
-
-    /* Toast */
-    .toast {
-      position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%) translateY(16px);
-      background: var(--card); border:1px solid var(--line); color: var(--text); padding: 10px 14px; border-radius: 12px;
-      opacity: 0; pointer-events:none; transition: opacity .25s ease, transform .25s ease;
-      box-shadow: 0 6px 24px rgba(0,0,0,.25);
-      font-size: 13px;
-    }
+    .toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%) translateY(16px); background: var(--card); border:1px solid var(--line); color: var(--text); padding: 10px 14px; border-radius: 12px; opacity: 0; pointer-events:none; transition: opacity .25s ease, transform .25s ease; box-shadow: 0 6px 24px rgba(0,0,0,.25); font-size: 13px; }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-    .kicker { color: var(--sub); font-size: 12px; margin-top: 8px; }
-    a { color: var(--primary); text-decoration: none; }
-    a:active { color: var(--primary-press); }
   </style>
 
   <body>
@@ -103,31 +50,31 @@
         <div class="logo">BH</div>
         <div>
           <h1>Bandwidth Hero</h1>
-          <p class="lead">Compress images via your proxy to save data. Works on mobile browsers too.</p>
+          <p class="lead">Compress images via your proxy to save data.</p>
         </div>
       </header>
 
-      <section class="card grid" aria-labelledby="sec-endpoint">
+      <section class="card grid">
         <div>
-          <label id="sec-endpoint" class="lbl">Proxy Base URL</label>
+          <label class="lbl">Proxy Base URL</label>
           <input id="proxyBase" type="text" inputmode="url" placeholder="https://himshim-bandwidth-hero.netlify.app/api/index" autocomplete="url" />
-          <div class="hint">Your endpoint that accepts <code>?url=…&amp;quality=…&amp;max_width=…&amp;bw=1</code></div>
+          <div class="hint">Endpoint that accepts <code>?url=…&amp;quality=…&amp;max_width=…&amp;bw=1</code></div>
         </div>
       </section>
 
       <div style="height:12px"></div>
 
-      <section class="card grid" aria-labelledby="sec-quality">
+      <section class="card grid">
         <div class="row2">
           <div>
-            <label id="sec-quality" class="lbl">Quality (1–100)</label>
+            <label class="lbl">Quality (1–100)</label>
             <input id="quality" type="number" min="1" max="100" placeholder="60" inputmode="numeric" />
             <div class="hint">Lower = smaller images, higher savings (but lower fidelity).</div>
           </div>
           <div>
             <label class="lbl">Max Width (px)</label>
             <input id="maxWidth" type="number" min="100" step="10" placeholder="1280" inputmode="numeric" />
-            <div class="hint">Images wider than this will be resized down.</div>
+            <div class="hint">Resize down large images.</div>
           </div>
         </div>
       </section>
@@ -152,7 +99,15 @@
         </div>
       </section>
 
-      <p class="kicker">Tip: ensure the extension has <strong>Site access: On all sites</strong> in your browser’s extension settings.</p>
+      <div style="height:12px"></div>
+
+      <section class="card grid">
+        <div>
+          <label class="lbl">Excluded sites (comma or space separated)</label>
+          <textarea id="excludeDomains" rows="3" placeholder="google.com gstatic.com"></textarea>
+          <div class="hint">No rewriting on these domains (both page domain and image host).</div>
+        </div>
+      </section>
     </div>
 
     <div class="actions">
