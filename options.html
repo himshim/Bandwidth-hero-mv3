@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+  <meta charset="utf-8" />
+  <title>Bandwidth Hero Options</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font: 14px system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 20px; max-width: 720px; }
+    h1 { margin: 0 0 10px; }
+    label { display:block; margin-top:12px; font-weight: 600; }
+    input[type="text"], input[type="number"] { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #bbb; border-radius: 8px; }
+    .row { display:flex; gap:12px; align-items:center; }
+    .row > div { flex: 1; }
+    .check { margin-top:10px; font-weight: 500; }
+    .hint { color:#666; font-size:12px; margin-top:6px; }
+    button { padding: 10px 14px; border-radius: 10px; border: 1px solid #bbb; cursor: pointer; }
+    #bar { margin: 16px 0; padding: 10px 12px; border: 1px dashed #bbb; border-radius: 10px; }
+  </style>
+
+  <h1>Bandwidth Hero</h1>
+  <div id="bar">
+    Set your compression proxy below. The extension will redirect image requests to it and serve compressed images.
+  </div>
+
+  <label>Proxy Base URL</label>
+  <input id="proxyBase" type="text" placeholder="https://your-proxy.example.com">
+  <div class="hint">Example proxies expect: <code>/image?url=&lt;img&gt;&amp;quality=&lt;1-100&gt;&amp;max_width=&lt;px&gt;&amp;bw=1</code></div>
+
+  <div class="row">
+    <div>
+      <label>Quality (1–100)</label>
+      <input id="quality" type="number" min="1" max="100" placeholder="60">
+    </div>
+    <div>
+      <label>Max Width (px)</label>
+      <input id="maxWidth" type="number" min="100" step="10" placeholder="1280">
+    </div>
+  </div>
+
+  <div class="check">
+    <label><input id="grayscale" type="checkbox"> Grayscale</label>
+    <label><input id="enabled" type="checkbox"> Enable compression</label>
+  </div>
+
+  <p><button id="save">Save</button> <span id="msg"></span></p>
+
+  <script type="module">
+    const els = {
+      proxyBase: document.getElementById('proxyBase'),
+      quality: document.getElementById('quality'),
+      maxWidth: document.getElementById('maxWidth'),
+      grayscale: document.getElementById('grayscale'),
+      enabled: document.getElementById('enabled'),
+      msg: document.getElementById('msg')
+    };
+
+    async function load() {
+      const d = await chrome.storage.sync.get({
+        enabled:true, proxyBase:"https://your-proxy.example.com",
+        quality:60, grayscale:false, maxWidth:1280
+      });
+      els.proxyBase.value = d.proxyBase;
+      els.quality.value = d.quality;
+      els.maxWidth.value = d.maxWidth;
+      els.grayscale.checked = d.grayscale;
+      els.enabled.checked = d.enabled;
+    }
+
+    async function save() {
+      const data = {
+        proxyBase: els.proxyBase.value.trim(),
+        quality: Number(els.quality.value || 60),
+        maxWidth: Number(els.maxWidth.value || 1280),
+        grayscale: els.grayscale.checked,
+        enabled: els.enabled.checked
+      };
+      await chrome.storage.sync.set(data);
+      els.msg.textContent = 'Saved.';
+      setTimeout(()=> els.msg.textContent='', 1200);
+    }
+
+    document.getElementById('save').addEventListener('click', save);
+    load();
+  </script>
+</html>
