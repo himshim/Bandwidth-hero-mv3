@@ -15,7 +15,7 @@ jobs:
   build-and-release:
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # lets the workflow create tags/releases
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,7 +25,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y jq zip rsync
 
-      # Figure out VERSION and TAG based on how the workflow was triggered
       - name: Derive version
         id: v
         shell: bash
@@ -34,7 +33,6 @@ jobs:
             VERSION="${{ github.event.inputs.version }}"
             TAG="v${VERSION}"
           else
-            # e.g. refs/tags/v1.2.3
             RAW="${GITHUB_REF##*/}"
             TAG="${RAW}"
             VERSION="${RAW#v}"
@@ -43,7 +41,6 @@ jobs:
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
           echo "Version: $VERSION  Tag: $TAG"
 
-      # If this is manual dispatch, create the tag so the release can use it
       - name: Create tag (manual runs)
         if: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
@@ -52,51 +49,48 @@ jobs:
           git tag ${{ steps.v.outputs.tag }}
           git push origin ${{ steps.v.outputs.tag }}
 
-      - name: Make build dirs
+      - name: Prepare build dirs
         run: |
           mkdir -p build/chromium build/firefox
+          rsync -a --delete --exclude '.git' --exclude '.github' ./ build/chromium/
+          rsync -a --delete --exclude '.git' --exclude '.github' ./ build/firefox/
 
-      # ---------- Prepare Chromium build ----------
-      - name: Copy source to Chromium dir
-        run: |
-          rsync -a --delete \
-            --exclude '.git' --exclude '.github' \
-            ./ build/chromium/
+      # ---------- Chromium ----------
+      - name: Validate manifest (Chromium)
+        run: jq . build/chromium/manifest.json >/dev/null
 
       - name: Set version & strip Firefox-only fields (Chromium)
         run: |
-          jq '.version="${{ steps.v.outputs.version }}"' build/chromium/manifest.json > build/chromium/manifest.json.tmp
-          mv build/chromium/manifest.json.tmp build/chromium/manifest.json
-          # Remove browser_specific_settings if present
-          jq 'del(.browser_specific_settings)' build/chromium/manifest.json > build/chromium/manifest.json.tmp || true
-          mv build/chromium/manifest.json.tmp build/chromium/manifest.json
+          tmp=build/chromium/manifest.json.tmp
+          jq '.version = "${{ steps.v.outputs.version }}"' build/chromium/manifest.json > "$tmp"
+          mv "$tmp" build/chromium/manifest.json
+          jq 'del(.browser_specific_settings)' build/chromium/manifest.json > "$tmp" || cp build/chromium/manifest.json "$tmp"
+          mv "$tmp" build/chromium/manifest.json
 
       - name: Zip Chromium
         run: |
           (cd build/chromium && zip -r ../bandwidth-hero-chromium.zip .)
           ls -lh build
 
-      # ---------- Prepare Firefox build ----------
-      - name: Copy source to Firefox dir
-        run: |
-          rsync -a --delete \
-            --exclude '.git' --exclude '.github' \
-            ./ build/firefox/
+      # ---------- Firefox ----------
+      - name: Validate manifest (Firefox)
+        run: jq . build/firefox/manifest.json >/dev/null
 
       - name: Set version & ensure gecko fields (Firefox)
         run: |
+          tmp=build/firefox/manifest.json.tmp
           jq '
-            .version="${{ steps.v.outputs.version }}" |
+            .version = "${{ steps.v.outputs.version }}" |
             .browser_specific_settings //= { "gecko": { "id": "bandwidth-hero@example.com", "strict_min_version": "128.0" } }
-          ' build/firefox/manifest.json > build/firefox/manifest.json.tmp
-          mv build/firefox/manifest.json.tmp build/firefox/manifest.json
+          ' build/firefox/manifest.json > "$tmp"
+          mv "$tmp" build/firefox/manifest.json
 
       - name: Zip Firefox
         run: |
           (cd build/firefox && zip -r ../bandwidth-hero-firefox.zip .)
           ls -lh build
 
-      - name: Upload zips as workflow artifacts (optional)
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: extension-zips
