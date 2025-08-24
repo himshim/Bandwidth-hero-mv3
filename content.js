@@ -1,4 +1,4 @@
-// Content-side URL rewriter for images (MV3-safe) with whitelist (excluded sites)
+// Content-side rewriter + stats (counts images, sums proxied bytes when allowed by TAO)
 (async function () {
   const defaults = {
     enabled: true,
@@ -9,39 +9,32 @@
     excludeDomains: "google.com gstatic.com"
   };
 
-  const opts = await new Promise((resolve) =>
-    chrome.storage.sync.get(defaults, resolve)
-  );
-
+  const opts = await new Promise((resolve) => chrome.storage.sync.get(defaults, resolve));
   if (!opts.enabled) return;
 
   const pageHost = location.hostname.toLowerCase();
-  const excluded = buildExcludedSet(opts.excludeDomains);
-  if (excluded.has(pageHost)) return; // skip entire page if excluded
+  const excluded = toDomainSet(opts.excludeDomains);
+  if (excluded.has(pageHost)) return;
 
-  const proxy = safeURL(opts.proxyBase);
-  if (!proxy) return;
+  const proxyUrl = safeURL(opts.proxyBase);
+  if (!proxyUrl) return;
+  const proxyHost = proxyUrl.hostname.toLowerCase();
 
-  const proxyHost = proxy.hostname.toLowerCase();
-
-  // Helpers
   function safeURL(u) { try { return new URL(u); } catch { return null; } }
-  function buildExcludedSet(text) {
-    return new Set(
-      String(text || "")
-        .split(/[, \n\r\t]+/)
-        .map(s => s.trim().toLowerCase())
-        .filter(Boolean)
-        .map(s => s.replace(/^https?:\/\//, "").split("/")[0])
-    );
+  function toDomainSet(text) {
+    return new Set(String(text || "")
+      .split(/[, \n\r\t]+/)
+      .map(s => s.trim().toLowerCase())
+      .filter(Boolean)
+      .map(s => s.replace(/^https?:\/\//, "").split("/")[0]));
   }
   function shouldSkip(targetUrl) {
     const u = safeURL(targetUrl);
     if (!u) return true;
     const host = u.hostname.toLowerCase();
-    if (host === proxyHost) return true;          // already proxied
-    if (excluded.has(host)) return true;          // excluded image host
-    if (u.protocol !== "http:" && u.protocol !== "https:") return true; // skip data:, blob:, etc.
+    if (host === proxyHost) return true; // already proxied
+    if (excluded.has(host)) return true; // image host excluded
+    if (u.protocol !== "http:" && u.protocol !== "https:") return true; // skip data:/blob:
     return false;
   }
   function buildProxyUrl(orig) {
@@ -56,6 +49,42 @@
     return base + sep + parts.join("&");
   }
 
+  // ---- Stats helpers (stored in storage.local) ----
+  async function addStat({ images = 0, bytes = 0 }) {
+    return new Promise((resolve) => {
+      chrome.storage.local.get({ stats: { images: 0, bytesViaProxy: 0 } }, (d) => {
+        const s = d.stats || { images: 0, bytesViaProxy: 0 };
+        s.images += images;
+        s.bytesViaProxy += bytes;
+        chrome.storage.local.set({ stats: s }, resolve);
+      });
+    });
+  }
+
+  // Track bytes for proxy requests via PerformanceObserver (needs TAO:* from your proxy to expose sizes)
+  const seenPerf = new Set();
+  const po = new PerformanceObserver((list) => {
+    for (const e of list.getEntries()) {
+      const name = e.name || "";
+      if (!name) continue;
+      // Only count resources fetched from the proxy host to avoid double-counting
+      try {
+        const u = new URL(name);
+        if (u.hostname.toLowerCase() !== proxyHost) continue;
+      } catch { continue; }
+
+      // Avoid counting the same URL multiple times
+      if (seenPerf.has(name)) continue;
+      seenPerf.add(name);
+
+      // encodedBodySize/transferSize are >0 only if proxy sends "Timing-Allow-Origin: *"
+      const bytes = (e.encodedBodySize && Number.isFinite(e.encodedBodySize)) ? e.encodedBodySize : 0;
+      if (bytes > 0) addStat({ bytes: bytes });
+    }
+  });
+  try { po.observe({ type: "resource", buffered: true }); } catch {}
+
+  // ---- Rewrite logic ----
   function rewriteImg(el) {
     if (!(el && el.tagName)) return;
 
@@ -63,14 +92,17 @@
     if (el.tagName === "IMG") {
       const src = el.getAttribute("src");
       if (src && !shouldSkip(src)) {
+        el.setAttribute("data-bh-orig", src);
         el.setAttribute("src", buildProxyUrl(src));
+        addStat({ images: 1 });
       }
     }
 
-    // <img srcset> / <source srcset>
-    if ((el.tagName === "IMG" || el.tagName === "SOURCE")) {
+    // <img/srcset> and <source/srcset>
+    if (el.tagName === "IMG" || el.tagName === "SOURCE") {
       const ss = el.getAttribute("srcset");
       if (ss && typeof ss === "string") {
+        let counted = false;
         const rewritten = ss
           .split(",")
           .map(part => {
@@ -81,20 +113,20 @@
             const url = m[1];
             const desc = m[2] || "";
             if (shouldSkip(url)) return trimmed;
+            counted = true;
             return buildProxyUrl(url) + desc;
           })
           .join(", ");
+        if (counted) addStat({ images: 1 });
         el.setAttribute("srcset", rewritten);
       }
     }
   }
 
-  // Initial pass
   function rewriteAll() {
     document.querySelectorAll("img, picture source").forEach(rewriteImg);
   }
 
-  // Watch for dynamic changes
   const mo = new MutationObserver((mutList) => {
     for (const m of mutList) {
       if (m.type === "childList") {
@@ -106,9 +138,7 @@
         });
       } else if (m.type === "attributes") {
         if (m.target && (m.target.tagName === "IMG" || m.target.tagName === "SOURCE")) {
-          if (m.attributeName === "src" || m.attributeName === "srcset") {
-            rewriteImg(m.target);
-          }
+          if (m.attributeName === "src" || m.attributeName === "srcset") rewriteImg(m.target);
         }
       }
     }
