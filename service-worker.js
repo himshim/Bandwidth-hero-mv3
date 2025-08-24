@@ -1,4 +1,4 @@
-// Bandwidth Hero (MV3) — service worker
+// Bandwidth Hero (MV3) — service worker (fixed for RE2 + CSP)
 const RULESET_ID = 1;
 
 function toProxyUrl(originalUrl, opts) {
@@ -12,15 +12,33 @@ function toProxyUrl(originalUrl, opts) {
 }
 
 function buildRules(opts) {
-  let excludeHost = "";
-  try { excludeHost = new URL(opts.proxyBase).host.replace(/\./g, "\\."); } catch (_) {}
-  const regex = excludeHost ? `^https?://(?!${excludeHost})(.*)` : `^https?://(.*)`;
-  return [{
+  // RE2: no lookaheads. Keep regex simple and exclude the proxy host via condition filters.
+  let proxyHost = "";
+  try { proxyHost = new URL(opts.proxyBase).host; } catch (_) {}
+
+  const rule = {
     id: RULESET_ID,
     priority: 1,
-    action: { type: "redirect", redirect: { regexSubstitution: toProxyUrl("\\0", opts) } },
-    condition: { resourceTypes: ["image"], regexFilter: regex }
-  }];
+    action: {
+      type: "redirect",
+      redirect: { regexSubstitution: toProxyUrl("\\0", opts) } // \0 = full match from regexFilter
+    },
+    condition: {
+      resourceTypes: ["image"],
+      // Simple RE2-safe regex: match any http/https request
+      regexFilter: "^https?://.*"
+    }
+  };
+
+  // Prevent loops: do not redirect requests **to** the proxy itself.
+  if (proxyHost) {
+    // These fields refer to the REQUEST URL’s domain in MV3.
+    rule.condition.excludedRequestDomains = [proxyHost];
+    // Some Chromium builds also honor excludedDomains for safety; harmless to include:
+    rule.condition.excludedDomains = [proxyHost];
+  }
+
+  return [rule];
 }
 
 async function loadOptions() {
@@ -53,7 +71,7 @@ chrome.storage.onChanged.addListener(async (changes, area) => {
   await applyRulesFromOptions(opts);
 });
 
-// Firefox MV3 still allows blocking webRequest; Chrome will ignore this block.
+// Firefox-only fallback (Chrome ignores this)
 if (typeof browser !== 'undefined' && browser.webRequest && browser.webRequest.onBeforeRequest) {
   const getOpts = () => browser.storage.sync.get({
     enabled: true,
@@ -67,7 +85,7 @@ if (typeof browser !== 'undefined' && browser.webRequest && browser.webRequest.o
       const opts = await getOpts();
       if (!opts.enabled) return {};
       try { return { redirectUrl: toProxyUrl(details.url, opts) }; }
-      catch (_) { return {}; }
+      catch { return {}; }
     },
     { urls: ["<all_urls>"], types: ["image"] },
     ["blocking"]
