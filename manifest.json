@@ -3,7 +3,7 @@
   "default_locale": "en",
   "name": "__MSG_extensionName__",
   "description": "__MSG_extensionDescription__",
-  "version": "0.4.2",
+  "version": "0.0.0",
 
   "action": { "default_popup": "popup.html" },
   "options_page": "options.html",
@@ -11,13 +11,16 @@
   "permissions": [
     "declarativeNetRequest",
     "declarativeNetRequestWithHostAccess",
-    "storage",
-    "declarativeNetRequestFeedback"   // <- add this while debugging
+    "storage"
   ],
   "host_permissions": ["<all_urls>"],
+
   "background": { "service_worker": "service-worker.js", "type": "module" },
 
   "browser_specific_settings": {
-    "gecko": { "id": "bandwidth-hero@example.com", "strict_min_version": "128.0" }
+    "gecko": {
+      "id": "bandwidth-hero@example.com",
+      "strict_min_version": "128.0"
+    }
   }
 }
