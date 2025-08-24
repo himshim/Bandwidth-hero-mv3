@@ -1,4 +1,4 @@
-// Content-side URL rewriter for images (MV3-safe, closest to legacy behavior)
+// Content-side URL rewriter for images (MV3-safe) with whitelist (excluded sites)
 (async function () {
   const defaults = {
     enabled: true,
@@ -17,7 +17,7 @@
 
   const pageHost = location.hostname.toLowerCase();
   const excluded = buildExcludedSet(opts.excludeDomains);
-  if (excluded.has(pageHost)) return; // skip whole page if excluded
+  if (excluded.has(pageHost)) return; // skip entire page if excluded
 
   const proxy = safeURL(opts.proxyBase);
   if (!proxy) return;
@@ -56,11 +56,10 @@
     return base + sep + parts.join("&");
   }
 
-  // Rewrite <img src>, <source srcset>, <img srcset>
   function rewriteImg(el) {
     if (!(el && el.tagName)) return;
 
-    // 1) <img src>
+    // <img src>
     if (el.tagName === "IMG") {
       const src = el.getAttribute("src");
       if (src && !shouldSkip(src)) {
@@ -68,7 +67,7 @@
       }
     }
 
-    // 2) <img/srcset> and <source/srcset> inside <picture>
+    // <img srcset> / <source srcset>
     if ((el.tagName === "IMG" || el.tagName === "SOURCE")) {
       const ss = el.getAttribute("srcset");
       if (ss && typeof ss === "string") {
@@ -77,7 +76,6 @@
           .map(part => {
             const trimmed = part.trim();
             if (!trimmed) return trimmed;
-            // pattern: URL [space] descriptor (e.g., "img.jpg 2x" or "img.jpg 400w")
             const m = trimmed.match(/^(\S+)(\s+.+)?$/);
             if (!m) return trimmed;
             const url = m[1];
@@ -96,16 +94,14 @@
     document.querySelectorAll("img, picture source").forEach(rewriteImg);
   }
 
-  // Observe for dynamically-added images
+  // Watch for dynamic changes
   const mo = new MutationObserver((mutList) => {
     for (const m of mutList) {
       if (m.type === "childList") {
         m.addedNodes.forEach((n) => {
           if (n.nodeType !== 1) return;
           if (n.tagName === "IMG" || n.tagName === "SOURCE") rewriteImg(n);
-          // If a <picture> is added, rewrite its children
           if (n.tagName === "PICTURE") n.querySelectorAll("img, source").forEach(rewriteImg);
-          // Any subtree with images
           n.querySelectorAll?.("img, picture source").forEach(rewriteImg);
         });
       } else if (m.type === "attributes") {
@@ -125,6 +121,5 @@
     attributeFilter: ["src", "srcset"]
   });
 
-  // Run once ASAP (document_start)
   rewriteAll();
 })();
