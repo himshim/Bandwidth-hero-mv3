@@ -4,6 +4,7 @@ const els = {
   maxWidth: document.getElementById('maxWidth'),
   grayscale: document.getElementById('grayscale'),
   enabled: document.getElementById('enabled'),
+  excludeDomains: document.getElementById('excludeDomains'),
   save: document.getElementById('save'),
   reset: document.getElementById('reset'),
   toast: document.getElementById('toast')
@@ -14,7 +15,8 @@ const DEFAULTS = {
   proxyBase: "https://your-proxy.example.com",
   quality: 60,
   grayscale: false,
-  maxWidth: 1280
+  maxWidth: 1280,
+  excludeDomains: "google.com gstatic.com"
 };
 
 function showToast(msg = "Saved") {
@@ -30,6 +32,7 @@ async function load() {
   els.maxWidth.value = d.maxWidth;
   els.grayscale.checked = d.grayscale;
   els.enabled.checked = d.enabled;
+  els.excludeDomains.value = d.excludeDomains;
 }
 load();
 
@@ -39,11 +42,11 @@ async function save() {
     quality: clampInt(els.quality.value, 1, 100, DEFAULTS.quality),
     maxWidth: clampInt(els.maxWidth.value, 100, 100000, DEFAULTS.maxWidth),
     grayscale: !!els.grayscale.checked,
-    enabled: !!els.enabled.checked
+    enabled: !!els.enabled.checked,
+    excludeDomains: (els.excludeDomains.value || "").trim()
   };
   await chrome.storage.sync.set(data);
   showToast("Settings saved");
-  // service worker listens to storage changes and rebuilds rules
 }
 
 function clampInt(v, min, max, def) {
@@ -60,11 +63,7 @@ async function resetAll() {
 
 els.save.addEventListener('click', save);
 els.reset.addEventListener('click', resetAll);
-
-// Improve mobile UX: submit on Enter in number/text fields
-['proxyBase', 'quality', 'maxWidth'].forEach(id => {
+['proxyBase','quality','maxWidth','excludeDomains'].forEach(id => {
   const el = document.getElementById(id);
-  el.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); save(); }
-  });
+  el.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); save(); } });
 });
