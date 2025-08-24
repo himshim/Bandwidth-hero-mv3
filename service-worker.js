@@ -1,44 +1,37 @@
-// Bandwidth Hero (MV3) — service worker (fixed for RE2 + CSP)
+// Bandwidth Hero (MV3) — service worker (fixed substitution + RE2-safe)
 const RULESET_ID = 1;
 
-function toProxyUrl(originalUrl, opts) {
+function buildRedirectSubstitution(opts) {
+  // Build the URL manually so \0 stays as backreference (NOT encoded).
   const base = (opts.proxyBase || "https://your-proxy.example.com").replace(/\/$/, "");
-  const u = new URL(base + "/image");
-  u.searchParams.set("url", originalUrl);
-  if (opts.quality) u.searchParams.set("quality", String(opts.quality));
-  if (opts.grayscale) u.searchParams.set("bw", "1");
-  if (opts.maxWidth) u.searchParams.set("max_width", String(opts.maxWidth));
-  return u.toString();
+  let sub = `${base}/image?url=\\0`;  // keep backslash here!
+  if (opts.quality)   sub += `&quality=${encodeURIComponent(String(opts.quality))}`;
+  if (opts.grayscale) sub += `&bw=1`;
+  if (opts.maxWidth)  sub += `&max_width=${encodeURIComponent(String(opts.maxWidth))}`;
+  return sub;
 }
 
 function buildRules(opts) {
-  // RE2: no lookaheads. Keep regex simple and exclude the proxy host via condition filters.
   let proxyHost = "";
   try { proxyHost = new URL(opts.proxyBase).host; } catch (_) {}
 
-  const rule = {
+  return [{
     id: RULESET_ID,
     priority: 1,
     action: {
       type: "redirect",
-      redirect: { regexSubstitution: toProxyUrl("\\0", opts) } // \0 = full match from regexFilter
+      // regexSubstitution replaces the WHOLE matched URL with this template.
+      // \0 is the ENTIRE original URL. Do not encode it.
+      redirect: { regexSubstitution: buildRedirectSubstitution(opts) }
     },
     condition: {
       resourceTypes: ["image"],
-      // Simple RE2-safe regex: match any http/https request
-      regexFilter: "^https?://.*"
+      // RE2-safe: simple match for any http/https URL
+      regexFilter: "^https?://.*",
+      // avoid redirect loops to your proxy itself
+      ...(proxyHost ? { excludedRequestDomains: [proxyHost], excludedDomains: [proxyHost] } : {})
     }
-  };
-
-  // Prevent loops: do not redirect requests **to** the proxy itself.
-  if (proxyHost) {
-    // These fields refer to the REQUEST URL’s domain in MV3.
-    rule.condition.excludedRequestDomains = [proxyHost];
-    // Some Chromium builds also honor excludedDomains for safety; harmless to include:
-    rule.condition.excludedDomains = [proxyHost];
-  }
-
-  return [rule];
+  }];
 }
 
 async function loadOptions() {
@@ -71,7 +64,7 @@ chrome.storage.onChanged.addListener(async (changes, area) => {
   await applyRulesFromOptions(opts);
 });
 
-// Firefox-only fallback (Chrome ignores this)
+// Firefox-only fallback (Chrome ignores this block)
 if (typeof browser !== 'undefined' && browser.webRequest && browser.webRequest.onBeforeRequest) {
   const getOpts = () => browser.storage.sync.get({
     enabled: true,
@@ -84,8 +77,18 @@ if (typeof browser !== 'undefined' && browser.webRequest && browser.webRequest.o
     async details => {
       const opts = await getOpts();
       if (!opts.enabled) return {};
-      try { return { redirectUrl: toProxyUrl(details.url, opts) }; }
-      catch { return {}; }
+      try {
+        // Build a real URL here since Firefox path doesn't need backrefs
+        const base = (opts.proxyBase || "https://your-proxy.example.com").replace(/\/$/, "");
+        const u = new URL(base + "/image");
+        u.searchParams.set("url", details.url);
+        if (opts.quality)   u.searchParams.set("quality", String(opts.quality));
+        if (opts.grayscale) u.searchParams.set("bw", "1");
+        if (opts.maxWidth)  u.searchParams.set("max_width", String(opts.maxWidth));
+        return { redirectUrl: u.toString() };
+      } catch {
+        return {};
+      }
     },
     { urls: ["<all_urls>"], types: ["image"] },
     ["blocking"]
