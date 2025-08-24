@@ -1,43 +1,61 @@
-// Bandwidth Hero (MV3) — service worker (no forced /image; RE2-safe; \0 preserved)
+// Bandwidth Hero (MV3) — service worker using URLTransform so the proxy gets an ENCODED ?url=...
 const RULESET_ID = 1;
 
-function buildRedirectSubstitution(opts) {
-  // Use proxyBase exactly as provided (full path allowed). Just append query params.
-  const base = (opts.proxyBase || "https://your-proxy.example.com").replace(/[\s]/g, "");
-  const sep = base.includes("?") ? "&" : "?"; // support bases that already have a query
-  let sub = `${base}${sep}url=\\0`; // keep \0 as a backreference (don't encode!)
-  if (opts.quality)   sub += `&quality=${encodeURIComponent(String(opts.quality))}`;
-  if (opts.grayscale) sub += `&bw=1`;
-  if (opts.maxWidth)  sub += `&max_width=${encodeURIComponent(String(opts.maxWidth))}`;
-  return sub;
+function buildTransform(opts) {
+  // Parse your proxy base (can include path like /api/index)
+  const raw = (opts.proxyBase || "https://your-proxy.example.com").trim();
+  let u;
+  try { u = new URL(raw); } catch (_) { return null; }
+
+  // Build a URLTransform that switches the request to your proxy and adds query params.
+  // IMPORTANT: queryTransform will URL-encode the value we provide.
+  const transform = {
+    scheme: u.protocol.replace(":", ""), // "https"
+    host: u.host,                        // "example.com" or "example.com:8443"
+    path: u.pathname || "/",             // keep your exact path e.g. "/api/index"
+    queryTransform: {
+      addOrReplaceParams: [
+        { key: "url", value: "\\0" } // back-reference to the entire original URL; will be encoded
+      ]
+    }
+  };
+
+  // Optional extras (these match the legacy proxy’s parameter names)
+  if (opts.quality)   transform.queryTransform.addOrReplaceParams.push({ key: "quality",   value: String(opts.quality) });
+  if (opts.grayscale) transform.queryTransform.addOrReplaceParams.push({ key: "bw",        value: "1" });
+  if (opts.maxWidth)  transform.queryTransform.addOrReplaceParams.push({ key: "max_width", value: String(opts.maxWidth) });
+
+  return { transform, proxyHost: u.host };
 }
 
 function buildRules(opts) {
-  let proxyHost = "";
-  try { proxyHost = new URL(opts.proxyBase).host; } catch (_) {}
+  const t = buildTransform(opts);
+  if (!t) return [];
 
-  return [{
+  const rule = {
     id: RULESET_ID,
     priority: 1,
     action: {
       type: "redirect",
-      redirect: { regexSubstitution: buildRedirectSubstitution(opts) }
+      redirect: t // uses { transform, proxyHost }
     },
     condition: {
-      resourceTypes: ["image"],
-      // RE2-safe: match any http/https image
+      // Match every http/https image request (RE2-safe)
       regexFilter: "^https?://.*",
-      // prevent loops to your proxy host
-      ...(proxyHost ? { excludedRequestDomains: [proxyHost], excludedDomains: [proxyHost] } : {})
+      resourceTypes: ["image"],
+      // Avoid loops: don't redirect requests that already target the proxy
+      excludedRequestDomains: [t.proxyHost],
+      excludedDomains: [t.proxyHost]
     }
-  }];
+  };
+
+  return [rule];
 }
 
 async function loadOptions() {
   return chrome.storage.sync.get({
     enabled: true,
-    // You will paste your full Netlify function URL into Options:
-    // e.g., https://himshim-bandwidth-hero.netlify.app/api/index
+    // Paste your full Netlify URL here in Options UI: https://himshim-bandwidth-hero.netlify.app/api/index
     proxyBase: "https://your-proxy.example.com",
     quality: 60,
     grayscale: false,
@@ -51,7 +69,10 @@ async function applyRulesFromOptions(opts) {
     await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: current.map(r => r.id) });
   }
   if (!opts.enabled) return;
-  await chrome.declarativeNetRequest.updateDynamicRules({ addRules: buildRules(opts) });
+  const rules = buildRules(opts);
+  if (rules.length) {
+    await chrome.declarativeNetRequest.updateDynamicRules({ addRules: rules });
+  }
 }
 
 chrome.runtime.onInstalled.addListener(async () => {
@@ -65,7 +86,7 @@ chrome.storage.onChanged.addListener(async (changes, area) => {
   await applyRulesFromOptions(opts);
 });
 
-// Firefox fallback (Chrome ignores)
+// Firefox-only fallback (Chrome ignores this block)
 if (typeof browser !== 'undefined' && browser.webRequest && browser.webRequest.onBeforeRequest) {
   const getOpts = () => browser.storage.sync.get({
     enabled: true,
@@ -80,12 +101,14 @@ if (typeof browser !== 'undefined' && browser.webRequest && browser.webRequest.o
       if (!opts.enabled) return {};
       try {
         const base = (opts.proxyBase || "https://your-proxy.example.com");
-        const sep = base.includes("?") ? "&" : "?";
-        const u = `${base}${sep}url=${encodeURIComponent(details.url)}`
-          + (opts.quality ? `&quality=${encodeURIComponent(String(opts.quality))}` : "")
-          + (opts.grayscale ? `&bw=1` : "")
-          + (opts.maxWidth ? `&max_width=${encodeURIComponent(String(opts.maxWidth))}` : "");
-        return { redirectUrl: u };
+        const u = new URL(base);
+        const q = new URLSearchParams(u.search);
+        q.set("url", details.url);                         // Firefox path can encode directly
+        if (opts.quality)   q.set("quality", String(opts.quality));
+        if (opts.grayscale) q.set("bw", "1");
+        if (opts.maxWidth)  q.set("max_width", String(opts.maxWidth));
+        u.search = q.toString();
+        return { redirectUrl: u.toString() };
       } catch { return {}; }
     },
     { urls: ["<all_urls>"], types: ["image"] },
