@@ -1,0 +1,116 @@
+name: Build & Release Extensions
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version without v (e.g., 1.0.0)"
+        required: true
+        default: "0.1.0"
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # lets the workflow create tags/releases
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq zip rsync
+
+      # Figure out VERSION and TAG based on how the workflow was triggered
+      - name: Derive version
+        id: v
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+            TAG="v${VERSION}"
+          else
+            # e.g. refs/tags/v1.2.3
+            RAW="${GITHUB_REF##*/}"
+            TAG="${RAW}"
+            VERSION="${RAW#v}"
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION  Tag: $TAG"
+
+      # If this is manual dispatch, create the tag so the release can use it
+      - name: Create tag (manual runs)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.v.outputs.tag }}
+          git push origin ${{ steps.v.outputs.tag }}
+
+      - name: Make build dirs
+        run: |
+          mkdir -p build/chromium build/firefox
+
+      # ---------- Prepare Chromium build ----------
+      - name: Copy source to Chromium dir
+        run: |
+          rsync -a --delete \
+            --exclude '.git' --exclude '.github' \
+            ./ build/chromium/
+
+      - name: Set version & strip Firefox-only fields (Chromium)
+        run: |
+          jq '.version="${{ steps.v.outputs.version }}"' build/chromium/manifest.json > build/chromium/manifest.json.tmp
+          mv build/chromium/manifest.json.tmp build/chromium/manifest.json
+          # Remove browser_specific_settings if present
+          jq 'del(.browser_specific_settings)' build/chromium/manifest.json > build/chromium/manifest.json.tmp || true
+          mv build/chromium/manifest.json.tmp build/chromium/manifest.json
+
+      - name: Zip Chromium
+        run: |
+          (cd build/chromium && zip -r ../bandwidth-hero-chromium.zip .)
+          ls -lh build
+
+      # ---------- Prepare Firefox build ----------
+      - name: Copy source to Firefox dir
+        run: |
+          rsync -a --delete \
+            --exclude '.git' --exclude '.github' \
+            ./ build/firefox/
+
+      - name: Set version & ensure gecko fields (Firefox)
+        run: |
+          jq '
+            .version="${{ steps.v.outputs.version }}" |
+            .browser_specific_settings //= { "gecko": { "id": "bandwidth-hero@example.com", "strict_min_version": "128.0" } }
+          ' build/firefox/manifest.json > build/firefox/manifest.json.tmp
+          mv build/firefox/manifest.json.tmp build/firefox/manifest.json
+
+      - name: Zip Firefox
+        run: |
+          (cd build/firefox && zip -r ../bandwidth-hero-firefox.zip .)
+          ls -lh build
+
+      - name: Upload zips as workflow artifacts (optional)
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-zips
+          path: |
+            build/bandwidth-hero-chromium.zip
+            build/bandwidth-hero-firefox.zip
+
+      - name: Create GitHub Release with assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.v.outputs.tag }}
+          name: Bandwidth Hero ${{ steps.v.outputs.version }}
+          draft: false
+          prerelease: false
+          files: |
+            build/bandwidth-hero-chromium.zip
+            build/bandwidth-hero-firefox.zip
