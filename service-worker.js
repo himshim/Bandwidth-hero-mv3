@@ -1,100 +1,98 @@
-// Bandwith Hero MV3 - background: initialize defaults + apply DNR redirect rules.
-// DNR ensures original image requests are redirected at network level (no original bytes downloaded).
+// service-worker.js
+const STORAGE_KEY = "bhSettings";
+const STAT_KEY = "bhStats";
 
-const RULE_ID = 1;
-
-const DEFAULTS_SYNC = {
-  enabled: true,
-  proxyBase: "https://your-proxy.example.com",
+// Defaults
+const defaults = {
+  proxyBase: "",
   quality: 60,
-  grayscale: false,
   maxWidth: 1280,
-  excludeDomains: "google.com gstatic.com"
+  grayscale: false,
+  enabled: true,
+  excludeDomains: "",
 };
 
-const DEFAULTS_LOCAL = {
-  stats: { images: 0, bytesViaProxy: 0 }
-};
+const defaultStats = { images: 0, bytes: 0 };
 
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.storage.sync.get(DEFAULTS_SYNC, d => chrome.storage.sync.set(d));
-  chrome.storage.local.get(DEFAULTS_LOCAL, d => chrome.storage.local.set(d));
-  refreshRules();
-});
-
-chrome.storage.onChanged.addListener((changes, area) => {
-  if (area !== "sync") return;
-  refreshRules(); // whenever options change, rebuild DNR rules
-});
-
-async function refreshRules() {
-  const opts = await chrome.storage.sync.get(DEFAULTS_SYNC);
-  // Clear old rules
-  const existing = await chrome.declarativeNetRequest.getDynamicRules();
-  if (existing.length) {
-    await chrome.declarativeNetRequest.updateDynamicRules({
-      removeRuleIds: existing.map(r => r.id)
-    });
-  }
-  if (!opts.enabled) return;
-
-  const rule = buildRule(opts);
-  if (rule) {
-    await chrome.declarativeNetRequest.updateDynamicRules({
-      addRules: [rule]
-    });
-  }
+// Utility
+async function getSettings() {
+  const data = await chrome.storage.local.get(STORAGE_KEY);
+  return { ...defaults, ...(data[STORAGE_KEY] || {}) };
 }
 
-function buildRule(opts) {
-  const base = (opts.proxyBase || "").trim();
-  if (!base) return null;
-
-  // Build regexSubstitution: base + ?url=\0 [+ params]
-  const sep = base.includes("?") ? "&" : "?";
-  let sub = `${base}${sep}url=\\0`;
-  if (opts.quality)   sub += `&quality=${encodeURIComponent(String(opts.quality))}`;
-  if (opts.grayscale) sub += `&bw=1`;
-  if (opts.maxWidth)  sub += `&max_width=${encodeURIComponent(String(opts.maxWidth))}`;
-
-  // Exclusions
-  const proxyHost = hostnameOf(base);
-  const excluded = parseDomains(opts.excludeDomains);
-
-  const condition = {
-    // Match all http(s) images
-    regexFilter: "^https?://.*",
-    resourceTypes: ["image"]
-  };
-
-  // Avoid redirect loops to the proxy itself
-  if (proxyHost) {
-    condition.excludedRequestDomains = (condition.excludedRequestDomains || []).concat([proxyHost]);
-    condition.excludedDomains = (condition.excludedDomains || []).concat([proxyHost]);
-  }
-  // Respect user excluded sites (both image host and page initiator)
-  if (excluded.length) {
-    condition.excludedRequestDomains = (condition.excludedRequestDomains || []).concat(excluded);
-    condition.excludedInitiatorDomains = (condition.excludedInitiatorDomains || []).concat(excluded);
-    condition.excludedDomains = (condition.excludedDomains || []).concat(excluded);
-  }
-
-  return {
-    id: RULE_ID,
-    priority: 1,
-    action: { type: "redirect", redirect: { regexSubstitution: sub } },
-    condition
-  };
+async function getStats() {
+  const data = await chrome.storage.local.get(STAT_KEY);
+  return { ...defaultStats, ...(data[STAT_KEY] || {}) };
 }
 
-function hostnameOf(u) {
-  try { return new URL(u).hostname.toLowerCase(); } catch { return ""; }
+async function saveStats(stats) {
+  await chrome.storage.local.set({ [STAT_KEY]: stats });
+  chrome.runtime.sendMessage({ type: "statsUpdate", stats });
 }
 
-function parseDomains(text) {
-  return String(text || "")
-    .split(/[, \n\r\t]+/)
-    .map(s => s.trim().toLowerCase())
+// Build proxy URL
+function buildProxyUrl(opts, url) {
+  const params = new URLSearchParams();
+  params.set("url", url);
+  params.set("quality", opts.quality);
+  if (opts.maxWidth) params.set("max_width", opts.maxWidth);
+  if (opts.grayscale) params.set("bw", "1");
+  return `${opts.proxyBase}?${params.toString()}`;
+}
+
+// Install proxy rules
+async function updateRules() {
+  const opts = await getSettings();
+
+  if (!opts.enabled || !opts.proxyBase) {
+    await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: [1] });
+    return;
+  }
+
+  const excluded = opts.excludeDomains
+    .split(/[\s,]+/)
     .filter(Boolean)
-    .map(s => s.replace(/^https?:\/\//, "").split("/")[0]);
+    .map(domain => `*://*.${domain}/*`);
+
+  await chrome.declarativeNetRequest.updateDynamicRules({
+    removeRuleIds: [1],
+    addRules: [
+      {
+        id: 1,
+        priority: 1,
+        action: {
+          type: "redirect",
+          redirect: {
+            regexSubstitution: buildProxyUrl(opts, "\\0"),
+          },
+        },
+        condition: {
+          regexFilter: "^https?://.*\\.(?:jpe?g|png|gif|webp)$",
+          excludedRequestDomains: excluded,
+          resourceTypes: ["image"]
+        },
+      },
+    ],
+  });
 }
+
+// Track compressed images (via feedback API)
+chrome.declarativeNetRequest.onRuleMatchedDebug.addListener(async info => {
+  const stats = await getStats();
+  stats.images += 1;
+  // proxy must return correct Content-Length to calculate bytes
+  if (info.request) {
+    stats.bytes += info.request.resourceSize || 0;
+  }
+  saveStats(stats);
+});
+
+// Listen for settings changes
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && changes[STORAGE_KEY]) {
+    updateRules();
+  }
+});
+
+// Init
+updateRules();
