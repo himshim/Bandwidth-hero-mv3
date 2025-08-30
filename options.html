@@ -1,63 +1,68 @@
 <!doctype html>
 <html lang="en">
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Bandwith Hero MV3 — Options</title>
-  <style>
-    :root { --bg:#0b0d10; --card:#12161b; --text:#e8eef6; --sub:#9aa7b1; --line:#20262d; --primary:#4da3ff; --press:#1d7ef0; --radius:16px; }
-    @media (prefers-color-scheme: light) { :root { --bg:#f6f8fb; --card:#ffffff; --text:#0c1116; --sub:#5c6b76; --line:#e8edf2; --primary:#0b78ff; --press:#0a64d3; } }
-    * { box-sizing: border-box; }
-    html,body { margin:0; padding:0; background:var(--bg); color:var(--text); font: 15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-    .wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px 110px; }
-    header { display:flex; align-items:center; gap:12px; margin-bottom:20px; }
-    .logo { width: 36px; height: 36px; border-radius: 12px; background: linear-gradient(180deg, var(--primary), #7cc1ff); display:grid; place-items:center; color:#fff; font-weight:700; }
-    h1 { font-size: 20px; margin: 0; }
-    p.lead { margin: 6px 0 0; color: var(--sub); font-size: 13px; }
-    .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
-    .grid { display:grid; gap:12px; }
-    .row2 { display:grid; gap:12px; grid-template-columns: 1fr; }
-    @media (min-width: 560px) { .row2 { grid-template-columns: 1fr 1fr; } }
-    label.lbl { font-weight: 600; font-size: 13px; margin-bottom: 6px; display:block; }
-    .hint { color: var(--sub); font-size: 12px; margin-top: 6px; }
-    input[type="text"], input[type="number"], textarea {
-      width: 100%; padding: 12px 14px; background: transparent; color: var(--text);
-      border: 1px solid var(--line); border-radius: 12px; outline: none; resize: vertical;
-    }
-    input[type="text"]:focus, input[type="number"]:focus, textarea:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 20%, transparent);
-    }
-    .slider-wrap { display:grid; grid-template-columns: 1fr auto; align-items:center; gap:10px; }
-    input[type="range"] { width:100%; accent-color: var(--primary); }
-    .toggle { display:flex; align-items:center; justify-content:space-between; padding: 12px; border: 1px solid var(--line); border-radius: 14px; }
-    .toggle .text { display:grid; gap:2px; }
-    .toggle .title { font-weight: 600; }
-    .toggle .desc { color: var(--sub); font-size: 12px; }
-    .switch { appearance:none; width: 48px; height: 28px; border-radius: 999px; background:#7a8793; position:relative; border:1px solid var(--line); }
-    .switch:checked { background: var(--primary); border-color: var(--primary); }
-    .switch::after { content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.25); transition: transform .2s ease; }
-    .switch:checked::after { transform: translateX(20px); }
-    .actions { position: sticky; bottom: 0; left: 0; right: 0; padding: 12px 16px; background: color-mix(in oklab, var(--bg) 75%, transparent); backdrop-filter: blur(8px); border-top: 1px solid var(--line); display:flex; gap:10px; justify-content:flex-end; }
-    .btn { appearance:none; border:1px solid var(--line); background: var(--card); color: var(--text); padding: 12px 16px; border-radius: 12px; font-weight: 600; cursor: pointer; }
-    .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
-    .btn.primary:active { background: var(--press); }
-    .btn.ghost { background: transparent; }
-    .toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%) translateY(16px); background: var(--card); border:1px solid var(--line); color: var(--text); padding: 10px 14px; border-radius: 12px; opacity: 0; pointer-events:none; transition: opacity .25s ease, transform .25s ease; box-shadow: 0 6px 24px rgba(0,0,0,.25); font-size: 13px; }
-    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-    .links a { color: var(--primary); text-decoration: none; }
-    .links a:active { color: var(--press); }
-    .stats { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
-    .stat { background: var(--card); border:1px solid var(--line); border-radius: 12px; padding: 12px; }
-    .stat .label { color: var(--sub); font-size: 12px; }
-    .stat .value { font-size: 20px; font-weight: 700; margin-top: 4px; }
-  </style>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title>Bandwidth Hero MV3 — Options</title>
+    <meta name="description" content="Bandwidth Hero MV3 Options - compress images via proxy to save bandwidth." />
+    <link rel="icon" href="icon.png" type="image/png" />
+    <style>
+      :root { --bg:#0b0d10; --card:#12161b; --text:#e8eef6; --sub:#9aa7b1; --line:#20262d; --primary:#4da3ff; --press:#1d7ef0; --radius:16px; }
+      @media (prefers-color-scheme: light) { :root { --bg:#f6f8fb; --card:#ffffff; --text:#0c1116; --sub:#5c6b76; --line:#e8edf2; --primary:#0b78ff; --press:#0a64d3; } }
+      * { box-sizing: border-box; }
+      html,body { margin:0; padding:0; background:var(--bg); color:var(--text); font: 15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+      .wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px 110px; }
+      header { display:flex; align-items:center; gap:12px; margin-bottom:20px; }
+      .logo { width: 36px; height: 36px; border-radius: 12px; background: linear-gradient(180deg, var(--primary), #7cc1ff); display:grid; place-items:center; color:#fff; font-weight:700; }
+      h1 { font-size: 20px; margin: 0; }
+      p.lead { margin: 6px 0 0; color: var(--sub); font-size: 13px; }
+      .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+      .grid { display:grid; gap:12px; }
+      .row2 { display:grid; gap:12px; grid-template-columns: 1fr; }
+      @media (min-width: 560px) { .row2 { grid-template-columns: 1fr 1fr; } }
+      label.lbl { font-weight: 600; font-size: 13px; margin-bottom: 6px; display:block; }
+      .hint { color: var(--sub); font-size: 12px; margin-top: 6px; }
+      input[type="text"], input[type="number"], textarea {
+        width: 100%; padding: 12px 14px; background: transparent; color: var(--text);
+        border: 1px solid var(--line); border-radius: 12px; outline: none; resize: vertical;
+      }
+      input[type="text"]:focus, input[type="number"]:focus, textarea:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 20%, transparent);
+      }
+      .slider-wrap { display:grid; grid-template-columns: 1fr auto; align-items:center; gap:10px; }
+      input[type="range"] { width:100%; accent-color: var(--primary); }
+      .toggle { display:flex; align-items:center; justify-content:space-between; padding: 12px; border: 1px solid var(--line); border-radius: 14px; }
+      .toggle .text { display:grid; gap:2px; }
+      .toggle .title { font-weight: 600; }
+      .toggle .desc { color: var(--sub); font-size: 12px; }
+      .switch { appearance:none; width: 48px; height: 28px; border-radius: 999px; background:#7a8793; position:relative; border:1px solid var(--line); cursor:pointer; }
+      .switch:checked { background: var(--primary); border-color: var(--primary); }
+      .switch::after { content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.25); transition: transform .2s ease; }
+      .switch:checked::after { transform: translateX(20px); }
+      .actions { position: sticky; bottom: 0; left: 0; right: 0; padding: 12px 16px; background: color-mix(in oklab, var(--bg) 75%, transparent); backdrop-filter: blur(8px); border-top: 1px solid var(--line); display:flex; gap:10px; justify-content:flex-end; }
+      .btn { appearance:none; border:1px solid var(--line); background: var(--card); color: var(--text); padding: 12px 16px; border-radius: 12px; font-weight: 600; cursor: pointer; }
+      .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+      .btn.primary:active { background: var(--press); }
+      .btn.ghost { background: transparent; }
+      .toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%) translateY(16px); background: var(--card); border:1px solid var(--line); color: var(--text); padding: 10px 14px; border-radius: 12px; opacity: 0; pointer-events:none; transition: opacity .25s ease, transform .25s ease; box-shadow: 0 6px 24px rgba(0,0,0,.25); font-size: 13px; }
+      .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+      .links a { color: var(--primary); text-decoration: none; }
+      .links a:active { color: var(--press); }
+      .stats { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+      .stat { background: var(--card); border:1px solid var(--line); border-radius: 12px; padding: 12px; }
+      .stat .label { color: var(--sub); font-size: 12px; }
+      .stat .value { font-size: 20px; font-weight: 700; margin-top: 4px; }
+      .spacer { height:12px; }
+    </style>
+  </head>
 
   <body>
-    <div class="wrap">
+    <main class="wrap">
       <header>
         <div class="logo">BH</div>
         <div>
-          <h1>Bandwith Hero MV3</h1>
+          <h1>Bandwidth Hero MV3</h1>
           <p class="lead">Compress images via your proxy to save data.</p>
         </div>
       </header>
@@ -74,22 +79,22 @@
         </div>
       </section>
 
-      <div style="height:12px"></div>
+      <div class="spacer"></div>
 
       <section class="card grid">
         <div>
-          <label class="lbl">Proxy Base URL</label>
+          <label class="lbl" for="proxyBase">Proxy Base URL</label>
           <input id="proxyBase" type="text" inputmode="url" placeholder="https://your-proxy.example.com/api/index" autocomplete="url" />
           <div class="hint">Endpoint that accepts <code>?url=…&amp;quality=…&amp;max_width=…&amp;bw=1</code></div>
         </div>
       </section>
 
-      <div style="height:12px"></div>
+      <div class="spacer"></div>
 
       <section class="card grid">
         <div class="row2">
           <div>
-            <label class="lbl">Quality</label>
+            <label class="lbl" for="quality">Quality</label>
             <div class="slider-wrap">
               <input id="quality" type="range" min="1" max="100" step="1" />
               <output id="qualityOut">60</output>
@@ -97,14 +102,14 @@
             <div class="hint">Lower = more compression & data saved; higher = better quality.</div>
           </div>
           <div>
-            <label class="lbl">Max Width (px)</label>
+            <label class="lbl" for="maxWidth">Max Width (px)</label>
             <input id="maxWidth" type="number" min="100" step="10" placeholder="1280" inputmode="numeric" />
             <div class="hint">Resize down large images.</div>
           </div>
         </div>
       </section>
 
-      <div style="height:12px"></div>
+      <div class="spacer"></div>
 
       <section class="grid">
         <div class="toggle">
@@ -112,7 +117,7 @@
             <div class="title">Grayscale</div>
             <div class="desc">Convert images to black-and-white (extra savings).</div>
           </div>
-          <input id="grayscale" type="checkbox" class="switch" />
+          <input id="grayscale" type="checkbox" class="switch" role="switch" aria-checked="false" />
         </div>
 
         <div class="toggle">
@@ -120,21 +125,21 @@
             <div class="title">Enable compression</div>
             <div class="desc">Master switch to turn the extension on or off.</div>
           </div>
-          <input id="enabled" type="checkbox" class="switch" />
+          <input id="enabled" type="checkbox" class="switch" role="switch" aria-checked="false" />
         </div>
       </section>
 
-      <div style="height:12px"></div>
+      <div class="spacer"></div>
 
       <section class="card grid">
         <div>
-          <label class="lbl">Excluded sites (comma or space separated)</label>
+          <label class="lbl" for="excludeDomains">Excluded sites (comma or space separated)</label>
           <textarea id="excludeDomains" rows="3" placeholder="google.com gstatic.com"></textarea>
           <div class="hint">No rewriting on these domains (both page domain and image host).</div>
         </div>
       </section>
 
-      <div style="height:12px"></div>
+      <div class="spacer"></div>
 
       <section class="grid">
         <div class="stats">
@@ -152,7 +157,7 @@
         </div>
         <div class="hint">“Data via proxy” requires your proxy to send <code>Timing-Allow-Origin: *</code>.</div>
       </section>
-    </div>
+    </main>
 
     <div class="actions">
       <button id="reset" class="btn ghost" type="button">Reset settings</button>
