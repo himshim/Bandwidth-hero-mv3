@@ -1,42 +1,27 @@
 {
   "manifest_version": 3,
-  "default_locale": "en",
-  "name": "__MSG_extensionName__",
-  "description": "__MSG_extensionDescription__",
-  "version": "0.0.0",
-
-  "action": { "default_popup": "popup.html" },
+  "name": "Bandwidth Hero MV3",
+  "description": "Compress images via your proxy to save bandwidth and data.",
+  "version": "0.6.4",
+  "permissions": ["storage", "declarativeNetRequest", "declarativeNetRequestFeedback"],
+  "host_permissions": ["http://*/*", "https://*/*"],
+  "background": {
+    "service_worker": "service-worker.js"
+  },
   "options_page": "options.html",
-
-  "permissions": [
-    "storage",
-    "tabs",
-    "declarativeNetRequest",
-    "declarativeNetRequestWithHostAccess"
-  ],
-  "host_permissions": ["<all_urls>"],
-
-  "background": { "service_worker": "service-worker.js", "type": "module" },
-
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["prehook.js"],
-      "run_at": "document_start",
-      "all_frames": true
-    },
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "run_at": "document_start",
-      "all_frames": true
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
     }
-  ],
-
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "bandwidth-hero@example.com",
-      "strict_min_version": "128.0"
-    }
-  }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "default_locale": "en",
+  "minimum_chrome_version": "100"
 }
