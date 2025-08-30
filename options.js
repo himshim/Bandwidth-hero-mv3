@@ -1,3 +1,5 @@
+// options.js - handles saving, restoring, and UI events
+
 const els = {
   proxyBase: document.getElementById("proxyBase"),
   quality: document.getElementById("quality"),
@@ -14,9 +16,11 @@ const els = {
   toast: document.getElementById("toast"),
 };
 
+// --- Storage keys
 const STORAGE_KEY = "bhSettings";
 const STAT_KEY = "bhStats";
 
+// --- Default values
 const defaults = {
   proxyBase: "",
   quality: 60,
@@ -28,6 +32,7 @@ const defaults = {
 
 const defaultStats = { images: 0, bytes: 0 };
 
+// --- Helpers
 function showToast(msg = "Saved") {
   els.toast.textContent = msg;
   els.toast.classList.add("show");
@@ -38,10 +43,14 @@ function formatBytes(bytes) {
   if (bytes < 1024) return `${bytes} B`;
   const units = ["KB", "MB", "GB"];
   let i = -1;
-  do { bytes /= 1024; i++; } while (bytes >= 1024 && i < units.length - 1);
+  do {
+    bytes /= 1024;
+    i++;
+  } while (bytes >= 1024 && i < units.length - 1);
   return `${bytes.toFixed(1)} ${units[i]}`;
 }
 
+// --- Load settings
 async function restoreOptions() {
   const data = await chrome.storage.local.get([STORAGE_KEY, STAT_KEY]);
   const opts = { ...defaults, ...(data[STORAGE_KEY] || {}) };
@@ -59,15 +68,10 @@ async function restoreOptions() {
   els.statBytes.textContent = formatBytes(stats.bytes);
 }
 
+// --- Save settings
 async function saveOptions() {
-  const url = els.proxyBase.value.trim();
-  if (url && !/^https?:\/\/.+/i.test(url)) {
-    showToast("Invalid proxy URL");
-    return;
-  }
-
   const opts = {
-    proxyBase: url,
+    proxyBase: els.proxyBase.value.trim(),
     quality: Number(els.quality.value),
     maxWidth: Number(els.maxWidth.value) || 0,
     grayscale: els.grayscale.checked,
@@ -79,33 +83,28 @@ async function saveOptions() {
   showToast("Settings saved");
 }
 
+// --- Reset to defaults
 async function resetOptions() {
   await chrome.storage.local.set({ [STORAGE_KEY]: defaults });
   restoreOptions();
   showToast("Settings reset");
 }
 
+// --- Reset stats
 async function resetStats() {
   await chrome.storage.local.set({ [STAT_KEY]: defaultStats });
   restoreOptions();
   showToast("Stats reset");
 }
 
-// Event bindings
+// --- Event bindings
 els.quality.addEventListener("input", () => {
   els.qualityOut.textContent = els.quality.value;
 });
+
 els.save.addEventListener("click", saveOptions);
 els.reset.addEventListener("click", resetOptions);
 els.resetStats.addEventListener("click", resetStats);
-
-// Listen for live stats
-chrome.runtime.onMessage.addListener(msg => {
-  if (msg.type === "statsUpdate" && msg.stats) {
-    els.statImages.textContent = msg.stats.images;
-    els.statBytes.textContent = formatBytes(msg.stats.bytes);
-  }
-});
 
 // Init
 restoreOptions();
