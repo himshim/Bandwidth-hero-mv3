@@ -1,0 +1,37 @@
+name: "Gito: AI Code Review"
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Pull Request number"
+        required: true
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions: { contents: read, pull-requests: write } # 'write' for leaving the summary comment
+    steps:
+    - uses: actions/checkout@v4
+      with: { fetch-depth: 0 }
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with: { python-version: "3.13" }
+    - name: Install AI Code Review tool
+      run: pip install gito.bot~=3.0
+    - name: Run AI code analysis
+      env:
+        LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+        LLM_API_TYPE: openai
+        MODEL: "gpt-4.1"
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PR_NUMBER_FROM_WORKFLOW_DISPATCH: ${{ github.event.inputs.pr_number }}
+      run: |
+        gito --verbose review
+        gito github-comment --token ${{ secrets.GITHUB_TOKEN }}
+    - uses: actions/upload-artifact@v4
+      with:
+        name: ai-code-review-results
+        path: |
+          code-review-report.md
+          code-review-report.json
